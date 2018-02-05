@@ -330,7 +330,7 @@ resources:
               network:
                 default_device: $(net_default_iface)
               cluster:
-                cni: flannel
+                cni: calico
                 pod_subnet: 192.169.0.0/16
                 domain: cluster.local
             EOF
@@ -379,12 +379,13 @@ resources:
             sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; git checkout ee90b372f9f66609435c4369c90dbabfbecbd79d' ubuntu
             sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; make' ubuntu
 
-
-            CONTROLLER_IPS=$(kubectl get -l opencontrail.org/controller=enabled nodes -o json | jq -r '.items[].status.addresses[] | select(.type=="InternalIP").address' | tr '\n' ',' | sed 's|,$||g')
+            cat > /etc/openstack-helm/contrail-controllers << EOF
+            $node_one_contrail_ip,$node_two_contrail_ip,$node_three_contrail_ip
+            EOF
 
             cat > /tmp/contrail-thirdparty.yaml << EOF
             contrail_env:
-              CONTROLLER_NODES: ${CONTROLLER_IPS}
+              CONTROLLER_NODES: "$(cat /etc/openstack-helm/contrail-controllers)"
               LOG_LEVEL: SYS_NOTICE
               CLOUD_ORCHESTRATOR: openstack
               AAA_MODE: cloud-admin
@@ -392,18 +393,22 @@ resources:
 
             #NOTE: will need to be changed for calico (bgp port)
             cat > /tmp/contrail-controller.yaml << EOF
+            images:
+              tags:
+                contrail_control: "docker.io/madhukar32/contrail-controller-control-control:5.0.0-175-centos7-newton"
             contrail_env:
-              CONTROLLER_NODES: ${CONTROLLER_IPS}
+              CONTROLLER_NODES: "$(cat /etc/openstack-helm/contrail-controllers)"
               LOG_LEVEL: SYS_NOTICE
               CLOUD_ORCHESTRATOR: openstack
               AAA_MODE: cloud-admin
+              BGP_PORT: 1179
             manifests:
               each_container_is_pod: true
             EOF
 
             cat > /tmp/contrail-analytics.yaml << EOF
             contrail_env:
-              CONTROLLER_NODES: ${CONTROLLER_IPS}
+              CONTROLLER_NODES: "$(cat /etc/openstack-helm/contrail-controllers)"
               LOG_LEVEL: SYS_NOTICE
               CLOUD_ORCHESTRATOR: openstack
               AAA_MODE: cloud-admin
@@ -413,18 +418,17 @@ resources:
 
             cat > /tmp/contrail-vrouter.yaml << EOF
             contrail_env:
-              CONTROLLER_NODES: ${CONTROLLER_IPS}
+              CONTROLLER_NODES: "$(cat /etc/openstack-helm/contrail-controllers)"
               LOG_LEVEL: SYS_NOTICE
               CLOUD_ORCHESTRATOR: openstack
               AAA_MODE: cloud-admin
               PHYSICAL_INTERFACE: ens4
-              VROUTER_GATEWAY: 10.11.12.1
+              VROUTER_GATEWAY: 10.11.14.1
             manifests:
               each_container_is_pod: true
             EOF
 
             kubectl replace -f https://raw.githubusercontent.com/madhukar32/openstack-helm/contrail_5_0/tools/kubeadm-aio/assets/opt/rbac/dev.yaml
-
 
             sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; helm install --name contrail-thirdparty ./contrail-thirdparty --namespace=openstack --values /tmp/contrail-thirdparty.yaml' ubuntu
             sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; helm install --name contrail-controller ./contrail-controller --namespace=openstack --values /tmp/contrail-controller.yaml' ubuntu
@@ -437,15 +441,14 @@ resources:
             sudo -H su -c 'cd /opt/Juniper/openstack-helm; helm install --name=libvirt ./libvirt --namespace=openstack --values=./tools/overrides/mvp/libvirt-opencontrail.yaml' ubuntu
 
             #Give any one of the control node IP's
-            CONTROLLER_IP=$(kubectl get -l opencontrail.org/controller=enabled nodes -o json | jq -r '.items[].status.addresses[] | select(.type=="InternalIP").address' | head -1)
             cat > /tmp/neutron.yaml << EOF
             conf:
               plugins:
                 opencontrail:
                   APISERVER:
-                    api_server_ip: ${CONTROLLER_IP}
+                    api_server_ip: $node_one_contrail_ip
                   COLLECTOR:
-                    analytics_api_ip: ${CONTROLLER_IP}
+                    analytics_api_ip: $node_one_contrail_ip
             EOF
             sudo -H su -c 'cd /opt/Juniper/openstack-helm; helm install --name=neutron ./neutron --namespace=openstack --values=./tools/overrides/mvp/neutron-opencontrail.yaml --values=/tmp/neutron.yaml' ubuntu
             sudo -H su -c 'cd /opt/Juniper/openstack-helm; helm install --name=nova ./nova --namespace=openstack --values=./tools/overrides/mvp/nova-opencontrail.yaml' ubuntu
@@ -490,6 +493,9 @@ resources:
             $node_three_ip: {get_attr: [node_three_private_net_port, fixed_ips, 0, ip_address]}
             $node_four_ip: {get_attr: [node_four_private_net_port, fixed_ips, 0, ip_address]}
             $node_five_ip: {get_attr: [node_five_private_net_port, fixed_ips, 0, ip_address]}
+            $node_one_contrail_ip: {get_attr: [node_one_storage_net_port, fixed_ips, 0, ip_address]}
+            $node_two_contrail_ip: {get_attr: [node_two_storage_net_port, fixed_ips, 0, ip_address]}
+            $node_three_contrail_ip: {get_attr: [node_three_storage_net_port, fixed_ips, 0, ip_address]}
             $storage_subnet: {get_param: storage_net_cidr }
             $tunnel_subnet: {get_param: tunnel_net_cidr }
 
