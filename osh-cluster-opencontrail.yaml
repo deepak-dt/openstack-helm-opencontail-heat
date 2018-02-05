@@ -1,0 +1,612 @@
+# openstack keypair create --public-key ~/.ssh/id_rsa.pub osh-vm-key
+# openstack orchestration template validate -t osh-cluster.yaml
+# openstack stack delete -y --wait osh-cluster || true
+# openstack stack create --wait -t osh-cluster.yaml osh-cluster
+heat_template_version: 2016-10-14
+
+parameters:
+  public_net:
+    type: string
+    default: public
+  image:
+    type: string
+    default: ubuntu-16.04
+  ssh_key:
+    type: string
+    default: osh-vm-key
+  private_net_cidr:
+    type: string
+    default: 10.11.11.0/24
+  storage_net_cidr:
+    type: string
+    default: 10.11.12.0/24
+  tunnel_net_cidr:
+    type: string
+    default: 10.11.13.0/24
+
+resources:
+  flavor:
+    type: OS::Nova::Flavor
+    properties:
+      disk: 256
+      ram: 131072
+      vcpus: 12
+
+  deploy_key:
+    type: OS::Nova::KeyPair
+    properties:
+      name: deploy_key
+      save_private_key: true
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: {get_param: public_net}
+
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: private_subnet }
+
+  private_net:
+    type: OS::Neutron::Net
+
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network: { get_resource: private_net }
+      cidr: {get_param: private_net_cidr }
+      dns_nameservers:
+        - 8.8.8.8
+        - 8.8.4.4
+
+  storage_net:
+    type: OS::Neutron::Net
+
+  storage_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      gateway_ip: null
+      network: { get_resource: storage_net }
+      cidr: {get_param: storage_net_cidr }
+
+  tunnel_net:
+    type: OS::Neutron::Net
+
+  tunnel_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      gateway_ip: null
+      network: { get_resource: tunnel_net }
+      cidr: {get_param: tunnel_net_cidr }
+
+
+  node_one_private_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: private_net}
+      fixed_ips:
+        - subnet: { get_resource: private_subnet }
+      port_security_enabled: false
+
+  node_two_private_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: private_net}
+      fixed_ips:
+        - subnet: { get_resource: private_subnet }
+      port_security_enabled: false
+
+  node_three_private_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: private_net}
+      fixed_ips:
+        - subnet: { get_resource: private_subnet }
+      port_security_enabled: false
+
+  node_four_private_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: private_net}
+      fixed_ips:
+        - subnet: { get_resource: private_subnet }
+      port_security_enabled: false
+
+  node_five_private_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: private_net}
+      fixed_ips:
+        - subnet: { get_resource: private_subnet }
+      port_security_enabled: false
+
+
+  node_one_storage_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: storage_net}
+      fixed_ips:
+        - subnet: { get_resource: storage_subnet }
+      port_security_enabled: false
+
+  node_two_storage_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: storage_net}
+      fixed_ips:
+        - subnet: { get_resource: storage_subnet }
+      port_security_enabled: false
+
+  node_three_storage_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: storage_net}
+      fixed_ips:
+        - subnet: { get_resource: storage_subnet }
+      port_security_enabled: false
+
+  node_four_storage_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: storage_net}
+      fixed_ips:
+        - subnet: { get_resource: storage_subnet }
+      port_security_enabled: false
+
+  node_five_storage_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: storage_net}
+      fixed_ips:
+        - subnet: { get_resource: storage_subnet }
+      port_security_enabled: false
+
+
+  node_one_tunnel_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: tunnel_net}
+      fixed_ips:
+        - subnet: { get_resource: tunnel_subnet }
+      port_security_enabled: false
+
+  node_two_tunnel_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: tunnel_net}
+      fixed_ips:
+        - subnet: { get_resource: tunnel_subnet }
+      port_security_enabled: false
+
+  node_three_tunnel_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: tunnel_net}
+      fixed_ips:
+        - subnet: { get_resource: tunnel_subnet }
+      port_security_enabled: false
+
+  node_four_tunnel_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: tunnel_net}
+      fixed_ips:
+        - subnet: { get_resource: tunnel_subnet }
+      port_security_enabled: false
+
+  node_five_tunnel_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: tunnel_net}
+      fixed_ips:
+        - subnet: { get_resource: tunnel_subnet }
+      port_security_enabled: false
+
+  node_one:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: { get_resource: flavor}
+      key_name: {get_param: ssh_key}
+      networks:
+        - port: { get_resource: node_one_private_net_port }
+        - port: { get_resource: node_one_storage_net_port }
+        - port: { get_resource: node_one_tunnel_net_port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -v
+            echo "$node_admin_ip $(hostname -s)" >> /etc/hosts
+            sudo -H su -c 'echo "$deploy_public_key" >> ~/.ssh/authorized_keys' ubuntu
+
+            mkdir -p /etc/openstack-helm
+            cat > /etc/openstack-helm/deploy-key.pem << EOF
+            $deploy_private_key
+            EOF
+            chmod 0600 /etc/openstack-helm/deploy-key.pem
+
+            cat > /usr/local/bin/ssh-one <<EOF
+            ssh -i /etc/openstack-helm/deploy-key.pem $node_one_ip $@
+            EOF
+            chmod +x /usr/local/bin/ssh-one
+
+            cat > /usr/local/bin/ssh-two <<EOF
+            ssh -i /etc/openstack-helm/deploy-key.pem $node_two_ip $@
+            EOF
+            chmod +x /usr/local/bin/ssh-two
+
+            cat > /usr/local/bin/ssh-three <<EOF
+            ssh -i /etc/openstack-helm/deploy-key.pem $node_three_ip $@
+            EOF
+            chmod +x /usr/local/bin/ssh-three
+
+            cat > /usr/local/bin/ssh-four <<EOF
+            ssh -i /etc/openstack-helm/deploy-key.pem $node_four_ip $@
+            EOF
+            chmod +x /usr/local/bin/ssh-four
+
+            cat > /usr/local/bin/ssh-five <<EOF
+            ssh -i /etc/openstack-helm/deploy-key.pem $node_five_ip $@
+            EOF
+            chmod +x /usr/local/bin/ssh-five
+
+            cat > /etc/openstack-helm/nodes << EOF
+            $node_one_ip
+            $node_two_ip
+            $node_three_ip
+            $node_four_ip
+            $node_five_ip
+            EOF
+
+            cat > /etc/openstack-helm/storage-subnet << EOF
+            $storage_subnet
+            EOF
+
+            cat > /etc/openstack-helm/tunnel-subnet << EOF
+            $tunnel_subnet
+            EOF
+
+            chown -R ubuntu: /etc/openstack-helm
+
+            apt-get update
+            apt-get install --no-install-recommends -y \
+                    ca-certificates \
+                    git \
+                    make \
+                    jq \
+                    nmap \
+                    curl
+
+            git clone https://git.openstack.org/openstack/openstack-helm-infra /opt/openstack-helm-infra
+
+            cat > /opt/openstack-helm-infra/tools/gate/devel/multinode-inventory.yaml <<EOF
+            all:
+              children:
+                primary:
+                  hosts:
+                    node_one:
+                      ansible_port: 22
+                      ansible_host: $node_one_ip
+                      ansible_user: ubuntu
+                      ansible_ssh_private_key_file: /etc/openstack-helm/deploy-key.pem
+                      ansible_ssh_extra_args: -o StrictHostKeyChecking=no
+                nodes:
+                  hosts:
+                    node_two:
+                      ansible_port: 22
+                      ansible_host: $node_two_ip
+                      ansible_user: ubuntu
+                      ansible_ssh_private_key_file: /etc/openstack-helm/deploy-key.pem
+                      ansible_ssh_extra_args: -o StrictHostKeyChecking=no
+                    node_three:
+                      ansible_port: 22
+                      ansible_host: $node_three_ip
+                      ansible_user: ubuntu
+                      ansible_ssh_private_key_file: /etc/openstack-helm/deploy-key.pem
+                      ansible_ssh_extra_args: -o StrictHostKeyChecking=no
+                    node_four:
+                      ansible_port: 22
+                      ansible_host: $node_four_ip
+                      ansible_user: ubuntu
+                      ansible_ssh_private_key_file: /etc/openstack-helm/deploy-key.pem
+                      ansible_ssh_extra_args: -o StrictHostKeyChecking=no
+                    node_five:
+                      ansible_port: 22
+                      ansible_host: $node_five_ip
+                      ansible_user: ubuntu
+                      ansible_ssh_private_key_file: /etc/openstack-helm/deploy-key.pem
+                      ansible_ssh_extra_args: -o StrictHostKeyChecking=no
+            EOF
+
+            function net_default_iface {
+             sudo ip -4 route list 0/0 | awk '{ print $5; exit }'
+            }
+            cat > /opt/openstack-helm-infra/tools/gate/devel/multinode-vars.yaml <<EOF
+            kubernetes:
+              network:
+                default_device: $(net_default_iface)
+              cluster:
+                cni: flannel
+                pod_subnet: 192.169.0.0/16
+                domain: cluster.local
+            EOF
+
+            chown -R ubuntu: /opt
+
+            sudo -H su -c 'cd /opt/openstack-helm-infra; make dev-deploy setup-host multinode' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm-infra; make dev-deploy k8s multinode' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm-infra; make all' ubuntu
+
+            sudo -H su -c 'git clone https://git.openstack.org/openstack/openstack-helm /opt/openstack-helm' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm; make all' ubuntu
+
+
+            sudo apt-get install -y ipcalc
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/010-setup-client.sh' ubuntu
+
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/030-ceph.sh' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/040-ceph-ns-activate.sh' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/050-mariadb.sh' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/060-rabbitmq.sh' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/070-memcached.sh' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/020-ingress.sh' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/080-keystone.sh' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/120-glance.sh' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/090-heat.sh' ubuntu
+
+            export KUBECONFIG=/home/ubuntu/.kube/config
+
+            for NODE in $(kubectl get nodes -o name | awk -F '/' '{ print $NF }'); do kubectl label node $NODE --overwrite openstack-compute-node=disabled ; done
+            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep osh-cluster-node-four) --overwrite openstack-compute-node=enabled
+            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep osh-cluster-node-five) --overwrite openstack-compute-node=enabled
+            for NODE in $(kubectl get nodes -o name | awk -F '/' '{ print $NF }'); do kubectl label node $NODE --overwrite openstack-control-plane=disabled ; done
+            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep osh-cluster-node-one) --overwrite openstack-control-plane=enabled
+            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep osh-cluster-node-two) --overwrite openstack-control-plane=enabled
+            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep osh-cluster-node-three) --overwrite openstack-control-plane=enabled
+
+            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep osh-cluster-node-one) --overwrite opencontrail.org/controller=enabled
+            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep osh-cluster-node-two) --overwrite opencontrail.org/controller=enabled
+            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep osh-cluster-node-three) --overwrite opencontrail.org/controller=enabled
+
+
+            sudo -H su -c 'mkdir -p /opt/Juniper' ubuntu
+            sudo -H su -c 'cd /opt/Juniper; git clone https://github.com/madhukar32/openstack-helm.git -b contrail_5_0' ubuntu
+            sudo -H su -c 'cd /opt/Juniper; git clone https://github.com/Juniper/contrail-helm-deployer.git' ubuntu
+            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; git checkout ee90b372f9f66609435c4369c90dbabfbecbd79d' ubuntu
+            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; make' ubuntu
+
+
+            CONTROLLER_IPS=$(kubectl get -l opencontrail.org/controller=enabled nodes -o json | jq -r '.items[].status.addresses[] | select(.type=="InternalIP").address' | tr '\n' ',' | sed 's|,$||g')
+
+            cat > /tmp/contrail-thirdparty.yaml << EOF
+            contrail_env:
+              CONTROLLER_NODES: ${CONTROLLER_IPS}
+              LOG_LEVEL: SYS_NOTICE
+              CLOUD_ORCHESTRATOR: openstack
+              AAA_MODE: cloud-admin
+            EOF
+
+            #NOTE: will need to be changed for calico (bgp port)
+            cat > /tmp/contrail-controller.yaml << EOF
+            contrail_env:
+              CONTROLLER_NODES: ${CONTROLLER_IPS}
+              LOG_LEVEL: SYS_NOTICE
+              CLOUD_ORCHESTRATOR: openstack
+              AAA_MODE: cloud-admin
+            manifests:
+              each_container_is_pod: true
+            EOF
+
+            cat > /tmp/contrail-analytics.yaml << EOF
+            contrail_env:
+              CONTROLLER_NODES: ${CONTROLLER_IPS}
+              LOG_LEVEL: SYS_NOTICE
+              CLOUD_ORCHESTRATOR: openstack
+              AAA_MODE: cloud-admin
+            manifests:
+              each_container_is_pod: true
+            EOF
+
+            cat > /tmp/contrail-vrouter.yaml << EOF
+            contrail_env:
+              CONTROLLER_NODES: ${CONTROLLER_IPS}
+              LOG_LEVEL: SYS_NOTICE
+              CLOUD_ORCHESTRATOR: openstack
+              AAA_MODE: cloud-admin
+              PHYSICAL_INTERFACE: ens4
+              VROUTER_GATEWAY: 10.11.12.1
+            manifests:
+              each_container_is_pod: true
+            EOF
+
+            kubectl replace -f https://raw.githubusercontent.com/madhukar32/openstack-helm/contrail_5_0/tools/kubeadm-aio/assets/opt/rbac/dev.yaml
+
+
+            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; helm install --name contrail-thirdparty ./contrail-thirdparty --namespace=openstack --values /tmp/contrail-thirdparty.yaml' ubuntu
+            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; helm install --name contrail-controller ./contrail-controller --namespace=openstack --values /tmp/contrail-controller.yaml' ubuntu
+            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; helm install --name contrail-analytics ./contrail-analytics --namespace=openstack --values /tmp/contrail-analytics.yaml' ubuntu
+            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; helm install --name contrail-vrouter ./contrail-vrouter --namespace=openstack --values /tmp/contrail-vrouter.yaml' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/common/wait-for-pods.sh openstack 1200' ubuntu
+
+
+            sudo -H su -c 'cd /opt/Juniper/openstack-helm; make' ubuntu
+            sudo -H su -c 'cd /opt/Juniper/openstack-helm; helm install --name=libvirt ./libvirt --namespace=openstack --values=./tools/overrides/mvp/libvirt-opencontrail.yaml' ubuntu
+
+            #Give any one of the control node IP's
+            CONTROLLER_IP=$(kubectl get -l opencontrail.org/controller=enabled nodes -o json | jq -r '.items[].status.addresses[] | select(.type=="InternalIP").address' | head -1)
+            cat > /tmp/neutron.yaml << EOF
+            conf:
+              plugins:
+                opencontrail:
+                  APISERVER:
+                    api_server_ip: ${CONTROLLER_IP}
+                  COLLECTOR:
+                    analytics_api_ip: ${CONTROLLER_IP}
+            EOF
+            sudo -H su -c 'cd /opt/Juniper/openstack-helm; helm install --name=neutron ./neutron --namespace=openstack --values=./tools/overrides/mvp/neutron-opencontrail.yaml --values=/tmp/neutron.yaml' ubuntu
+            sudo -H su -c 'cd /opt/Juniper/openstack-helm; helm install --name=nova ./nova --namespace=openstack --values=./tools/overrides/mvp/nova-opencontrail.yaml' ubuntu
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/common/wait-for-pods.sh openstack 1200' ubuntu
+            sleep 30
+
+            curl -L http://paste.openstack.org/raw/662556/ > /opt/heat.yaml
+            export OS_CLOUD=openstack_helm
+            export OSH_EXT_NET_NAME="public"
+            export OSH_VM_FLAVOR="m1.tiny"
+            export OSH_VM_KEY_STACK="heat-vm-key"
+            export OSH_PRIVATE_SUBNET="10.0.0.0/24"
+
+            # NOTE(portdirect): We do this fancy, and seemingly pointless, footwork to get
+            # the full image name for the cirros Image without having to be explicit.
+            export IMAGE_NAME=$(openstack image show -f value -c name \
+              $(openstack image list -f csv | awk -F ',' '{ print $2 "," $1 }' | \
+                grep "^\"Cirros" | head -1 | awk -F ',' '{ print $2 }' | tr -d '"'))
+
+            # Setup SSH Keypair in Nova
+            mkdir -p ${HOME}/.ssh
+            openstack keypair create --private-key ${HOME}/.ssh/osh_key ${OSH_VM_KEY_STACK}
+            chmod 600 ${HOME}/.ssh/osh_key
+
+            openstack stack create --wait \
+                --parameter image="${IMAGE_NAME}" \
+                --parameter flavor=${OSH_VM_FLAVOR} \
+                --parameter ssh_key=${OSH_VM_KEY_STACK} \
+                --parameter cidr=${OSH_PRIVATE_SUBNET} \
+                -t /opt/heat.yaml \
+                heat-basic-vm-deployment
+
+            sleep 60
+            openstack console log show $(openstack server list -f value -c ID)
+
+          params:
+            $node_admin_ip: {get_attr: [node_one_private_net_port, fixed_ips, 0, ip_address]}
+            $deploy_public_key: {get_attr: [deploy_key, public_key]}
+            $deploy_private_key: {get_attr: [deploy_key, private_key]}
+            $node_one_ip: {get_attr: [node_one_private_net_port, fixed_ips, 0, ip_address]}
+            $node_two_ip: {get_attr: [node_two_private_net_port, fixed_ips, 0, ip_address]}
+            $node_three_ip: {get_attr: [node_three_private_net_port, fixed_ips, 0, ip_address]}
+            $node_four_ip: {get_attr: [node_four_private_net_port, fixed_ips, 0, ip_address]}
+            $node_five_ip: {get_attr: [node_five_private_net_port, fixed_ips, 0, ip_address]}
+            $storage_subnet: {get_param: storage_net_cidr }
+            $tunnel_subnet: {get_param: tunnel_net_cidr }
+
+  node_two:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: { get_resource: flavor}
+      key_name: {get_param: ssh_key}
+      networks:
+        - port: { get_resource: node_two_private_net_port }
+        - port: { get_resource: node_two_storage_net_port }
+        - port: { get_resource: node_two_tunnel_net_port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -v
+            echo "$node_admin_ip $(hostname -s)" >> /etc/hosts
+            sudo -H su -c 'echo "$deploy_public_key" >> ~/.ssh/authorized_keys' ubuntu
+
+            apt-get update
+            apt-get install --no-install-recommends -y \
+                    git
+
+            sudo -H chown -R ubuntu: /opt
+            sudo -H su -c 'git clone https://git.openstack.org/openstack/openstack-helm-infra /opt/openstack-helm-infra' ubuntu
+          params:
+            $node_admin_ip: {get_attr: [node_two_private_net_port, fixed_ips, 0, ip_address]}
+            $deploy_public_key: {get_attr: [deploy_key, public_key]}
+
+  node_three:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: { get_resource: flavor}
+      key_name: {get_param: ssh_key}
+      networks:
+        - port: { get_resource: node_three_private_net_port }
+        - port: { get_resource: node_three_storage_net_port }
+        - port: { get_resource: node_three_tunnel_net_port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -v
+            echo "$node_admin_ip $(hostname -s)" >> /etc/hosts
+            sudo -H su -c 'echo "$deploy_public_key" >> ~/.ssh/authorized_keys' ubuntu
+
+            apt-get update
+            apt-get install --no-install-recommends -y \
+                    git
+
+            sudo -H chown -R ubuntu: /opt
+            sudo -H su -c 'git clone https://git.openstack.org/openstack/openstack-helm-infra /opt/openstack-helm-infra' ubuntu
+          params:
+            $node_admin_ip: {get_attr: [node_three_private_net_port, fixed_ips, 0, ip_address]}
+            $deploy_public_key: {get_attr: [deploy_key, public_key]}
+
+  node_four:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: { get_resource: flavor}
+      key_name: {get_param: ssh_key}
+      networks:
+        - port: { get_resource: node_four_private_net_port }
+        - port: { get_resource: node_four_storage_net_port }
+        - port: { get_resource: node_four_tunnel_net_port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -v
+            echo "$node_admin_ip $(hostname -s)" >> /etc/hosts
+            sudo -H su -c 'echo "$deploy_public_key" >> ~/.ssh/authorized_keys' ubuntu
+
+            apt-get update
+            apt-get install --no-install-recommends -y \
+                    git
+
+            sudo -H chown -R ubuntu: /opt
+            sudo -H su -c 'git clone https://git.openstack.org/openstack/openstack-helm-infra /opt/openstack-helm-infra' ubuntu
+          params:
+            $node_admin_ip: {get_attr: [node_four_private_net_port, fixed_ips, 0, ip_address]}
+            $deploy_public_key: {get_attr: [deploy_key, public_key]}
+
+  node_five:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: { get_resource: flavor}
+      key_name: {get_param: ssh_key}
+      networks:
+        - port: { get_resource: node_five_private_net_port }
+        - port: { get_resource: node_five_storage_net_port }
+        - port: { get_resource: node_five_tunnel_net_port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -v
+            echo "$node_admin_ip $(hostname -s)" >> /etc/hosts
+            sudo -H su -c 'echo "$deploy_public_key" >> ~/.ssh/authorized_keys' ubuntu
+
+            apt-get update
+            apt-get install --no-install-recommends -y \
+                    git
+
+            sudo -H chown -R ubuntu: /opt
+            sudo -H su -c 'git clone https://git.openstack.org/openstack/openstack-helm-infra /opt/openstack-helm-infra' ubuntu
+          params:
+            $node_admin_ip: {get_attr: [node_five_private_net_port, fixed_ips, 0, ip_address]}
+            $deploy_public_key: {get_attr: [deploy_key, public_key]}
+
+  server_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {get_param: public_net}
+      port_id: { get_resource: node_one_private_net_port }
