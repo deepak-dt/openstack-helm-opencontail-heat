@@ -52,8 +52,7 @@ parameters:
     default: kernel
   OSH_EXTRA_HELM_ARGS:
     type: string
-    #default: "--values=./tools/overrides/releases/ocata/kolla.yaml" -- For Ocata uncomment this line and remove below like
-    default: ""
+    default: "--values=./tools/overrides/releases/ocata/kolla.yaml"
 
 resources:
   flavor:
@@ -313,7 +312,6 @@ resources:
                     curl
 
             git clone https://git.openstack.org/openstack/openstack-helm-infra /opt/openstack-helm-infra
-            cd /opt/openstack-helm-infra; git checkout 27c46b56032abaea47fa7e7424fb6ead55061137; cd -
             
             line_to_rep_orig="      port: 9091"
             line_to_rep_new="      port: 9099"
@@ -384,7 +382,6 @@ resources:
             sudo -H su -c 'cd /opt/openstack-helm-infra; make all' ubuntu
 
             sudo -H su -c 'git clone https://git.openstack.org/openstack/openstack-helm /opt/openstack-helm' ubuntu
-            sudo -H su -c 'cd /opt/openstack-helm; git checkout fb4fe70bf83b420b3d625250bd35efd76af1b1d3' ubuntu
             sudo -H su -c 'cd /opt/openstack-helm; make all' ubuntu
             
             ## Kubernetes Node DNS Resolution
@@ -403,15 +400,17 @@ resources:
             sudo apt-get install -y ipcalc
             sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/010-setup-client.sh' ubuntu
 
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/020-ingress.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
             sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/030-ceph.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
             sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/040-ceph-ns-activate.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
-            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/050-mariadb.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
-            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/060-rabbitmq.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
-            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/070-memcached.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
-            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/020-ingress.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
-            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/080-keystone.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
-            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/120-glance.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
-            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/090-heat.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/050-mariadb.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/060-rabbitmq.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/070-memcached.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/080-keystone.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/090-ceph-radosgateway.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/100-glance.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/110-cinder.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/150-heat.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
             sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/developer/ceph/100-horizon.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
 
             export KUBECONFIG=/home/ubuntu/.kube/config
@@ -426,148 +425,10 @@ resources:
             kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_controller_1_hostname) --overwrite openstack-control-plane=enabled 
             kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_controller_2_hostname) --overwrite openstack-control-plane=enabled 
             kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_controller_3_hostname) --overwrite openstack-control-plane=enabled 
-            
-            # Label Contrail controller nodes
-            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_controller_1_hostname) --overwrite opencontrail.org/controller=enabled 
-            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_controller_2_hostname) --overwrite opencontrail.org/controller=enabled 
-            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_controller_3_hostname) --overwrite opencontrail.org/controller=enabled 
-            
-            # Label Contrail compute nodes
-            if [ $compute_1_vrouter_mode = "kernel" ]
-            then
-            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_compute_1_hostname) --overwrite opencontrail.org/vrouter-kernel=enabled
-            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_compute_1_hostname) --overwrite opencontrail.org/vrouter-dpdk=disabled
-            else
-            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_compute_1_hostname) --overwrite opencontrail.org/vrouter-dpdk=enabled
-            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_compute_1_hostname) --overwrite opencontrail.org/vrouter-kernel=disabled
-            fi
-            
-            if [ $compute_2_vrouter_mode = "kernel" ]
-            then
-            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_compute_2_hostname) --overwrite opencontrail.org/vrouter-kernel=enabled
-            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_compute_2_hostname) --overwrite opencontrail.org/vrouter-dpdk=disabled
-            else
-            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_compute_2_hostname) --overwrite opencontrail.org/vrouter-dpdk=enabled
-            kubectl label node $(kubectl get node -o name | awk -F '/' '{ print $NF }'  | grep $osh_compute_2_hostname) --overwrite opencontrail.org/vrouter-kernel=disabled
-            fi
-
-            sudo -H su -c 'mkdir -p /opt/Juniper' ubuntu
-            sudo -H su -c 'cd /opt/Juniper; git clone https://github.com/madhukar32/openstack-helm.git -b contrail_5_0' ubuntu
-            sudo -H su -c 'cd /opt/Juniper; git clone https://github.com/Juniper/contrail-helm-deployer.git' ubuntu
-            # DROP-2: 
-            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; git checkout f09b661a74c049ea4f6c5f641927b072fe9eb820' ubuntu
-            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; make' ubuntu
-
-            cat > /etc/openstack-helm/contrail-controllers << EOF
-            $node_one_contrail_ip,$node_two_contrail_ip,$node_three_contrail_ip
-            EOF
-
-            cat > /tmp/contrail-thirdparty.yaml << EOF
-            contrail_env:
-              CONTROLLER_NODES: "$(cat /etc/openstack-helm/contrail-controllers)"
-              LOG_LEVEL: SYS_NOTICE
-              CLOUD_ORCHESTRATOR: openstack
-              AAA_MODE: cloud-admin
-            EOF
-
-            #NOTE: will need to be changed for calico (bgp port)
-            cat > /tmp/contrail-controller.yaml << EOF
-            #images:
-            #  tags:
-            #    contrail_control: "docker.io/madhukar32/contrail-controller-control-control:5.0.0-175-centos7-newton"
-            contrail_env:
-              CONTROLLER_NODES: "$(cat /etc/openstack-helm/contrail-controllers)"
-              LOG_LEVEL: SYS_NOTICE
-              CLOUD_ORCHESTRATOR: openstack
-              AAA_MODE: cloud-admin
-              BGP_PORT: 1179
-            manifests:
-              each_container_is_pod: true
-            EOF
-
-            cat > /tmp/contrail-analytics.yaml << EOF
-            contrail_env:
-              CONTROLLER_NODES: "$(cat /etc/openstack-helm/contrail-controllers)"
-              LOG_LEVEL: SYS_NOTICE
-              CLOUD_ORCHESTRATOR: openstack
-              AAA_MODE: cloud-admin
-            manifests:
-              each_container_is_pod: true
-            EOF
-            
-            cat > /tmp/contrail-vrouter.yaml << EOF
-            contrail_env: 
-              CONTROLLER_NODES: "$(cat /etc/openstack-helm/contrail-controllers)"
-              LOG_LEVEL: SYS_NOTICE 
-              CLOUD_ORCHESTRATOR: openstack 
-              AAA_MODE: cloud-admin 
-              PHYSICAL_INTERFACE: $CONTRAIL_PHYSICAL_INTERFACE 
-              VROUTER_GATEWAY: $VROUTER_GATEWAY 
-              # Deepak
-              METADATA_PROXY_SECRET: password
-            EOF
-
-            if ([ $compute_1_vrouter_mode = "dpdk" ] || [ $compute_2_vrouter_mode = "dpdk" ])
-            then
-            cat >> /tmp/contrail-vrouter.yaml << EOF
-              # DPDK related parameters
-              CPU_CORE_MASK: "0xf"
-              DPDK_UIO_DRIVER: uio_pci_generic
-              HUGE_PAGES: 32000
-              AGENT_MODE: dpdk
-              ## Check HUGE_PAGES_DIR with "mount | grep huge" and update it below
-              HUGE_PAGES_DIR: /dev/hugepages
-            manifests: 
-              #  each_container_is_pod: true 
-              daemonset_dpdk: true
-            EOF
-            else
-            cat >> /tmp/contrail-vrouter.yaml << EOF
-              AGENT_MODE: nic
-            manifests:
-              #  each_container_is_pod: true
-              daemonset_dpdk: false
-            EOF
-            fi
-
-            if ([ $compute_1_vrouter_mode = "kernel" ] || [ $compute_2_vrouter_mode = "kernel" ])
-            then
-            cat >> /tmp/contrail-vrouter.yaml << EOF
-              daemonset_kernel: true
-            EOF
-            else
-            cat >> /tmp/contrail-vrouter.yaml << EOF
-              daemonset_kernel: false
-            EOF
-            fi
-
-            kubectl replace -f https://raw.githubusercontent.com/madhukar32/openstack-helm/contrail_5_0/tools/kubeadm-aio/assets/opt/rbac/dev.yaml
-
-            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; helm install --name contrail-thirdparty ./contrail-thirdparty --namespace=openstack --values /tmp/contrail-thirdparty.yaml' ubuntu
-            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; helm install --name contrail-controller ./contrail-controller --namespace=openstack --values /tmp/contrail-controller.yaml' ubuntu
-            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; helm install --name contrail-analytics ./contrail-analytics --namespace=openstack --values /tmp/contrail-analytics.yaml' ubuntu
-            sudo -H su -c 'cd /opt/Juniper/contrail-helm-deployer; helm install --name contrail-vrouter ./contrail-vrouter --namespace=openstack --values /tmp/contrail-vrouter.yaml' ubuntu
-            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/common/wait-for-pods.sh openstack 1200' ubuntu
-
-
-            sudo -H su -c 'cd /opt/Juniper/openstack-helm; make' ubuntu
-            sudo -H su -c 'cd /opt/Juniper/openstack-helm; helm install --name=libvirt ./libvirt --namespace=openstack --values=./tools/overrides/mvp/libvirt-opencontrail.yaml' ubuntu
-
-            #Give any one of the control node IP's
-            cat > /tmp/neutron.yaml << EOF
-            conf:
-              plugins:
-                opencontrail:
-                  APISERVER:
-                    api_server_ip: $node_one_contrail_ip
-                  COLLECTOR:
-                    analytics_api_ip: $node_one_contrail_ip
-            EOF
-            sudo -H su -c 'cd /opt/Juniper/openstack-helm; helm install --name=neutron ./neutron --namespace=openstack --values=./tools/overrides/mvp/neutron-opencontrail.yaml --values=/tmp/neutron.yaml' ubuntu
-            #sudo -H su -c 'cd /opt/Juniper/openstack-helm; helm install --name=nova ./nova --namespace=openstack --values=./tools/overrides/mvp/nova-opencontrail.yaml' ubuntu
-            sudo -H su -c 'cd /opt/Juniper/openstack-helm; helm upgrade --install nova ./nova --namespace=openstack --set images.tags.compute=docker.io/kolla/ubuntu-source-nova-compute:3.0.3 --set conf.nova.libvirt.virt_type=qemu --values=./tools/overrides/mvp/nova-opencontrail.yaml' ubuntu
-            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/common/wait-for-pods.sh openstack 1200' ubuntu
-            sleep 30
+           
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/120-openvswitch.sh' ubuntu $OSH_EXTRA_HELM_ARGS
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/130-libvirt.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
+            sudo -H su -c 'cd /opt/openstack-helm; ./tools/deployment/multinode/140-compute-kit.sh $0' ubuntu $OSH_EXTRA_HELM_ARGS
 
             curl -L http://paste.openstack.org/raw/662556/ > /opt/heat.yaml
             export OS_CLOUD=openstack_helm
