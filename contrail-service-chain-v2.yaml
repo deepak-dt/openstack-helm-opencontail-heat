@@ -1,3 +1,9 @@
+# Create the Heat stack by launching the template and the environment file (optional, if not given default values shall be used), 
+# using the following command:
+# heat stack create contrail-service-chain-v2-stack –f contrail-service-chain-v2.yaml –e contrail-service-chain-v2.env
+# OR use this command for recent versions of OpenStack
+# openstack stack create -e <env-file-name> -t <template-file-name> <stack-name>
+
 heat_template_version: 2015-04-30
 
 parameters:
