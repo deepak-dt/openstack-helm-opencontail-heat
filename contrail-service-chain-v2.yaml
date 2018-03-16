@@ -4,137 +4,179 @@ parameters:
   management_network:
     type: string
     description: Name of management network to be created
+    default: 'management_vn'
   left_vn:
     type: string
     description: Name of left network to be created
+    default: 'left_vn'
   right_vn:
     type: string
     description: Name of right network to be created
+    default: 'right_vn'
   left_vn_fqdn:
     type: string
     description: FQ Name of the left network
+    default: 'default-domain:admin:left_vn'
   right_vn_fqdn:
     type: string
     description: FQ Name of the right network
+    default: 'default-domain:admin:right_vn'
   image:
     type: string
     description: Name of the image
+    default: 'Cirros 0.3.5 64-bit'
   flavor:
     type: string
     description: Flavor
+    default: 'm1.tiny'
   
   domain:
     type: string
     description: Name of the Domain
+    default: 'default-domain'
   service_template_name:
     type: string
     label: Service template fq name
     description: Service template for port tuple
+    default: pt_template
   service_template_properties_version:
     type: string
     description: Indicates service version
+    default: 2
   service_template_properties_service_mode:
     type: string
     description: service mode
+    default: 'in-network'
   service_template_properties_service_type:
     type: string
     description: service type
+    default: 'firewall'
   service_template_properties_interface_type_service_interface_type_1:
     type: string
     description: service_interface_type for the ServiceTemplate
+    default: 'mgmt'
   service_template_properties_interface_type_service_interface_type_2:
     type: string
     description: service_interface_type for the ServiceTemplate
+    default: 'left'
   service_template_properties_interface_type_service_interface_type_3:
     type: string
     description: service_interface_type for the ServiceTemplate
+    default: 'right'
   service_template_properties_ordered_interfaces:
     type: string
     description: Indicates service interfaces are ordered
+    default: True
 
   service_instance_name:
     type: string
     label: Service instance name
     description: Service instance for port tuple
+    default: pt_instance
   service_instance_fq_name:
     type: string
     label: Service instance fq name
     description: Service instance FQDN for port tuple
+    default: 'default-domain:admin:pt_instance'
   
   network_ipam_refs_data_ipam_subnets_subnet_ip_prefix_1:
     type: string
     description: subnet prefix for mgmt network
+    default: '172.9.9.0'
   network_ipam_refs_data_ipam_subnets_subnet_ip_prefix_len_1:
     type: string
     description: subnet prefix len for mgmt network
+    default: 24
   network_ipam_refs_data_ipam_subnets_subnet_ip_prefix_2:
     type: string
     description: subnet prefix for left network
+    default: '172.9.18.0'
   network_ipam_refs_data_ipam_subnets_subnet_ip_prefix_len_2:
     type: string
     description: subnet prefix len for left network
+    default: 24
   network_ipam_refs_data_ipam_subnets_subnet_ip_prefix_3:
     type: string
     description: subnet prefix for right network
+    default: '172.9.27.0'
   network_ipam_refs_data_ipam_subnets_subnet_ip_prefix_len_3:
     type: string
     description: subnet prefix len for right network
+    default: 24
   network_ipam_refs_data_ipam_subnets_addr_from_start_true:
     type: boolean
     description: Address allocation from start of the pool
+    default: true
   
   svm_name: 
     type: string
     description: Name of the SVM
+    default: 'pt_svm'
   svm_flavor: 
     type: string
     description: Flavor of the SVM
+    default: 'm1.tiny'
   svm_image_name: 
     type: string
     description: Name of the SVM image
+    default: tiny_in_net
   flavor: 
     type: string
     description: Flavor of the end VMs
+    default: 'm1.tiny'
   image: 
     type: string
     description: Name of the end VM image
+    default: 'Cirros 0.3.5 64-bit'
   left_vm_name:
     type: string
     description: Name of the left VM
+    default: 'left_vm'
   right_vm_name: 
     type: string
     description: Name of the right VM
+    default: 'right_vm'
   pt_name:
     type: string
     description: Name of the port tuple
+    default: 'pt1'
  
   policy_name:
     type: string
     description: Name of the Policy
+    default: 'pt_policy'
   policy_fq_name:
     type: string
     description: FQDN of the Policy 
+    default: 'default-domain:admin:pt_policy'
   simple_action:
     type: string
     description: Pass or Deny
+    default: 'pass'
   protocol:
     type: string
     description: Protocol
+    default: 'any'
   src_port_end:
     type: number
     description: End of the Source Port Range
+    default: -1
   src_port_start:
     type: number
     description: Start of the Source Port Range
+    default: -1
   direction:
     type: string
     description: Direction of the Policy
+    default: '<>'
   dst_port_end:
     type: number
     description: End of the Destination Port Range
+    default: -1
   dst_port_start:
     type: number
     description: Start of the Destination Port Range
+    default: -1
 
 resources:
   template_NetworkIpam_1:
