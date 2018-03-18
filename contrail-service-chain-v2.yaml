@@ -125,7 +125,7 @@ parameters:
   svm_image_name: 
     type: string
     description: Name of the SVM image
-    default: tiny_in_net
+    default: 'tiny_in_net'
   flavor: 
     type: string
     description: Flavor of the end VMs
