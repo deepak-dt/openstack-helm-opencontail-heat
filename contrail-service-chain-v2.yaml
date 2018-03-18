@@ -2,7 +2,7 @@
 # using the following command:
 # heat stack create contrail-service-chain-v2-stack –f contrail-service-chain-v2.yaml –e contrail-service-chain-v2.env
 # OR use this command for recent versions of OpenStack
-# openstack stack create -e <env-file-name> -t <template-file-name> <stack-name>
+# openstack stack create -e contrail-service-chain-v2.env -t contrail-service-chain-v2.yaml contrail-service-chain-v2
 
 heat_template_version: 2015-04-30
 
