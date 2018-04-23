@@ -1,0 +1,1064 @@
+# Template to create a stack to test jumbo frames within same VN as well as different VNs through router
+
+
+heat_template_version: 2015-04-30
+
+parameters:
+#==shaker-params
+  image:
+    type: string
+    description: Name of image to use for servers
+  flavor:
+    type: string
+    description: Flavor to use for servers
+  external_net:
+    type: string
+    description: ID or name of external network
+  server_endpoint:
+    type: string
+    description: Server endpoint address
+  dns_nameservers:
+    type: comma_delimited_list
+    description: DNS nameservers for the subnet
+#==shaker-params
+
+ # VN Parameters 
+  private_net_name_1:
+    type: string
+    description: Name of left network to be created
+  private_net_cidr_1:
+    type: string
+    description: subnet prefix for network-1
+  private_net_gateway_1:
+    type: string
+    description: gateway for network-1
+
+  private_net_name_2:
+    type: string
+    description: Name of left network to be created
+  private_net_cidr_2:
+    type: string
+    description: subnet prefix for network-2
+  private_net_gateway_2:
+    type: string
+    description: gateway for network-2
+
+  private_net_name_3:
+    type: string
+    description: Name of left network to be created
+  private_net_cidr_3:
+    type: string
+    description: subnet prefix for network-3
+  private_net_gateway_3:
+    type: string
+    description: gateway for network-3
+
+  private_net_name_4:
+    type: string
+    description: Name of left network to be created
+  private_net_cidr_4:
+    type: string
+    description: subnet prefix for network-4
+  private_net_gateway_4:
+    type: string
+    description: gateway for network-4
+
+  # Nova image parameters
+  image:
+    type: string
+    description: Name of the image
+  flavor:
+    type: string
+    description: Flavor
+  az_1:
+    type: string
+    description: Availability Zone for agent
+  az_2:
+    type: string
+    description: Availability Zone for Right VM
+
+  dpdk_image:
+    type: string
+    description: Name of the image
+  dpdk_flavor:
+    type: string
+    description: Flavor
+  dpdk_az:
+    type: string
+    description: Availability Zone for agent
+
+  public_key:
+    type: string
+    description: public_key
+
+resources:
+#==shaker resources
+  shaker_private_net:
+    type: OS::Neutron::Net
+    properties:
+      name: {{ unique }}_net
+
+  shaker_private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: shaker_private_net }
+      cidr: 10.0.0.0/16
+      enable_dhcp: true
+      gateway_ip: 10.0.0.1
+
+  shaker_router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_param: external_net }
+
+  shaker_router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: shaker_router }
+      subnet_id: { get_resource: shaker_private_subnet }
+
+  shaker_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules: [
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: tcp,
+        port_range_min: 1,
+        port_range_max: 65535},
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: udp,
+        port_range_min: 1,
+        port_range_max: 65535},
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: icmp},
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: 132,
+        port_range_min: 1,
+        port_range_max: 65535},
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: tcp,
+        port_range_min: 22,
+        port_range_max: 22}]
+#==shaker resources
+
+  private_net_1:
+    type: OS::Neutron::Net
+    properties:
+      name: { get_param: private_net_name_1 }
+
+  private_subnet_1:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: private_net_1 }
+      cidr: { get_param: private_net_cidr_1 }
+      gateway_ip: { get_param: private_net_gateway_1 }
+
+  private_net_2:
+    type: OS::Neutron::Net
+    properties:
+      name: { get_param: private_net_name_2 }
+
+  private_subnet_2:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: private_net_2 }
+      cidr: { get_param: private_net_cidr_2 }
+      gateway_ip: { get_param: private_net_gateway_2 }
+
+  private_net_3:
+    type: OS::Neutron::Net
+    properties:
+      name: { get_param: private_net_name_3 }
+
+  private_subnet_3:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: private_net_3 }
+      cidr: { get_param: private_net_cidr_3 }
+      gateway_ip: { get_param: private_net_gateway_3 }
+
+  private_net_4:
+    type: OS::Neutron::Net
+    properties:
+      name: { get_param: private_net_name_4 }
+
+  private_subnet_4:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: private_net_4 }
+      cidr: { get_param: private_net_cidr_4 }
+      gateway_ip: { get_param: private_net_gateway_4 }
+
+
+  router_1:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_param: external_net }
+
+  router_interface_1:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router_1 }
+      subnet_id: { get_resource: private_subnet_1 }
+
+  router_interface_2:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router_1 }
+      subnet_id: { get_resource: private_subnet_2 }
+
+  router_interface_3:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router_1 }
+      subnet_id: { get_resource: private_subnet_3 }
+
+  router_interface_4:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router_1 }
+      subnet_id: { get_resource: private_subnet_4 }
+
+  port_1:
+    type: "OS::Neutron::Port"
+    properties:
+      network_id: { get_resource: private_net_1 }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet_1 }
+      security_groups: [{ get_resource: shaker_security_group }]
+
+  port_2:
+    type: "OS::Neutron::Port"
+    properties:
+      network_id: { get_resource: private_net_2 }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet_2 }
+      security_groups: [{ get_resource: shaker_security_group }]
+
+  port_3:
+    type: "OS::Neutron::Port"
+    properties:
+      network_id: { get_resource: private_net_3 }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet_3 }
+      security_groups: [{ get_resource: shaker_security_group }]
+
+  port_4:
+    type: "OS::Neutron::Port"
+    properties:
+      network_id: { get_resource: private_net_4 }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet_4 }
+      security_groups: [{ get_resource: shaker_security_group }]
+
+  port_2_1:
+    type: "OS::Neutron::Port"
+    properties:
+      network_id: { get_resource: private_net_1 }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet_1 }
+      security_groups: [{ get_resource: shaker_security_group }]
+
+  port_2_2:
+    type: "OS::Neutron::Port"
+    properties:
+      network_id: { get_resource: private_net_2 }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet_2 }
+      security_groups: [{ get_resource: shaker_security_group }]
+
+  port_2_3:
+    type: "OS::Neutron::Port"
+    properties:
+      network_id: { get_resource: private_net_3 }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet_3 }
+      security_groups: [{ get_resource: shaker_security_group }]
+
+  port_2_4:
+    type: "OS::Neutron::Port"
+    properties:
+      network_id: { get_resource: private_net_4 }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet_4 }
+      security_groups: [{ get_resource: shaker_security_group }]
+
+{% for agent in agents.values() %}
+  {% set agent_index = agent.id.split('_')[3] %}
+  {% if 'master' in agent.id %}
+
+  {{ agent.id }}:
+    type: OS::Nova::Server
+    properties:
+      name: {{ agent.id }}
+      image: { get_param: dpdk_image }
+      flavor: { get_param: dpdk_flavor }
+      availability_zone: { get_param: dpdk_az }
+      key_name: { get_param: public_key }
+      networks:
+        #==external port
+        - network: { get_param: external_net }
+        #==external port
+        #==shaker port
+        - port: { get_resource: {{ agent.id }}_shaker_port }
+        #==shaker port
+        - port: { get_resource: port_1 }
+        - port: { get_resource: port_2 }
+        - port: { get_resource: port_3 }
+        - port: { get_resource: port_4 }
+
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+
+            export WORK="/root"
+            export proxy="http://one.proxy.att.com:8888"
+
+            # New addition
+            cat << EOF > /etc/network/interfaces
+            auto eth0
+            iface eth0 inet dhcp
+
+            auto eth1
+            iface eth1 inet dhcp
+
+            auto eth2
+            iface eth2 inet dhcp
+
+            auto eth3
+            iface eth3 inet dhcp
+
+            auto eth4
+            iface eth4 inet dhcp
+
+            auto eth5
+            iface eth5 inet dhcp
+            EOF
+
+            chmod 644 /etc/network/interfaces
+
+            ifup eth0
+            ifup eth1
+            ifup eth2
+            ifup eth3
+            ifup eth4
+            ifup eth5
+            # New addition
+
+            sudo dhclient eth1
+            sleep 5
+            sudo dhclient eth2
+            sleep 5
+            sudo dhclient eth3
+            sleep 5
+            sudo dhclient eth4
+            sleep 5
+            sudo dhclient eth5
+            sleep 5
+            #==external port
+            sudo dhclient eth0
+            sleep 5
+            #==external port
+
+            echo "-----BEGIN RSA PRIVATE KEY-----
+            MIIEogIBAAKCAQEA3MHSuV4XuMMJZIEnT6y+tc2dVBVIZhh7IkuTFXrVPhhWvrzU
+            ShysRmx4UkW5OYnGHZVP+Bu2vWJsHKtUnt4dCLTlSIPAoli4F8IZJh/Wb1ow/eVn
+            hNpR//iwD/UMhWVL/NGoymq6Pk37wqiKqf9CX/P1vvFj9MldJsrcCMtVKRy+qGQ3
+            rCNefSyA5AlTcpkBu2vlIc5xgXUGllqZ5sGsHlz5xZ10HTHxhsEySZSikkmQnMh4
+            ZZEravyEUHaf0iXoAlEKqc5h9XVFyd4bpMbXPcSVsqi42VN8wS9F5JWODttEN2zd
+            VLt0CjIfmQwvcpxg5MtI8fcbj9ZimnHnMw4/1QIDAQABAoIBACJOuPn35oXfQbFt
+            5Pcb6JOGfeHYYOUE/vXoetZGvaclzy1bWT6fUCKtrtFSZqPLho+IaeIsJG0wQ479
+            DWyXJjn5KvznBOP2F74ReykSn5e0k5KRuVHLQB0gv/Pq6GQ+xt1mk+3JQmJ2ah7p
+            ZItg0SbqWhGvoBIlzSU/N4ziVLzLoe1Ee1tGDoRwuQLFHyLvxg7oDBpMhqWysMtf
+            AriRweXXwZgkNotqDHP+NwryH1KipkTanXyaoxcat90eIfF0VdSqm1rkcfpcXnNR
+            WN80eeLl1KgEapNvQ1yFiV3hvFI+CqQLu7uLadaOe4QmwOYDeYraWMxhY2TQ1a91
+            8vwAVq0CgYEA73DwFNxWbOXUrG0u9Lj47P7c0HNVqLwBWWpUo2OrUmMyUfumR9RG
+            AzQzuZ+heb9NXyyBK+cMQaLVy0SaMtlxM8OoDtDtRIcVE9hHfmnEEr7+zA/Rkubg
+            8ppKKvg4N8yIhtdic0l0StfMMWEvuAcY3RdPS1IJEklx6xyoTLA6DLcCgYEA7AYa
+            drfv4vmqSVrS+5Doq8fkY4V1+HJfR5MhyPpdsnFNtTA+o8LJTFn5zWPRrELcmc/E
+            8KuolmPxXK3oD8gDKxuvsbyVFbg2s7LOYkzZEPi8GMPQ0w45w8q6OkgBFh13Vtjn
+            zxRsZsDUhdENYMEJ7EFo5Zo+n+3WCgvPOP0NY9MCgYA33MeGdmmLeouFtutvmQAq
+            esOVtnLTrRk7fT1F6Wj9DbuduPJwa6vx72np8r4/o0wv2jhAv+TyI0Vx6Q14s5Zf
+            l1RMMJ5KkKFwQdNcQNzH6tuTTFV+ynLM5wZKxCKJkiSAIRwM/aQuGe6/zobNjopU
+            eq27SuZm58+2JLd3PN4uPQKBgCKnCr+fZdL3QO8gLJXOwrpl0Lxj3dwqPp7tlSpC
+            x/ro87XEbY3xjUhudWSYYTJfZrAWdx22tjvOVKN8zPN0NDLiD7uSqnjT4QQlHnQE
+            QGJjgopIRaKXFhgO7aSc6bvre5f+pJocr4WujgVPmh04elJ7kAEV0lf8vU4gSb5e
+            ONcNAoGAJix/1eiOjBrfS4xfZnoXuWtQVOcrw2p5aH/KKfIw+c+sD72mdxrjmmj0
+            ETM7YSkCaIlze5Vak3ygiHmsWW6DGnEgVvvsVGeOuYqP7k6GKrB+r0W3FUeCcKzL
+            GRvZKpTZERkPyT/x1AtWDVJOG8sPHj7Shhe/3u7uqIej9q++tiM=
+            -----END RSA PRIVATE KEY-----" > ~/.ssh/osh-contrail-key-pair.pem
+
+            echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDcwdK5Xhe4wwlkgSdPrL61zZ1UFUhmGHsiS5MVetU+GFa+vNRKHKxGbHhSRbk5icYdlU/4G7a9Ymwcq1Se3h0ItOVIg8CiWLgXwhkmH9ZvWjD95WeE2lH/+LAP9QyFZUv80ajKaro+TfvCqIqp/0Jf8/W+8WP0yV0mytwIy1UpHL6oZDesI159LIDkCVNymQG7a+UhznGBdQaWWpnmwaweXPnFnXQdMfGGwTJJlKKSSZCcyHhlkStq/IRQdp/SJegCUQqpzmH1dUXJ3hukxtc9xJWyqLjZU3zBL0XklY4O20Q3bN1Uu3QKMh+ZDC9ynGDky0jx9xuP1mKaceczDj/V Generated-by-Nova" >> ~/.ssh/authorized_keys
+            chmod 600 ~/.ssh/authorized_keys
+            chmod 600 ~/.ssh/osh-contrail-key-pair.pem
+            eval $(ssh-agent -s)
+            ssh-add ~/.ssh/osh-contrail-key-pair.pem
+
+            #==shaker cmd
+            #screen -dmS shaker-agent-screen shaker-agent --server-endpoint=$SERVER_ENDPOINT --agent-id=$AGENT_ID --debug --log-file /var/log/shaker-agent.log
+            #==shaker cmd
+
+            export http_proxy=$proxy
+            export https_proxy=$proxy
+
+            cat << EOF | sudo tee -a /etc/yum.conf
+            proxy=$proxy
+            EOF
+
+            yum update -y
+            yum groupinstall -y 'Development Tools'
+            yum install -y numactl-devel pciutils git vim
+            yum install -y kernel-3.10.0-693.17.1.el7.x86_64 kernel-devel-3.10.0-693.17.1.el7.x86_64
+
+            #######################################################
+            # Fetch DPDK code
+            #######################################################
+            curl --proxy $proxy https://fast.dpdk.org/rel/dpdk-17.11.1.tar.xz > $WORK/dpdk-17.11.1.tar.xz
+            cd $WORK/; tar -xvf $WORK/dpdk-17.11.1.tar.xz
+            #------------------------------------------------------
+
+            #######################################################
+            # Setup huge pages
+            #######################################################
+            cat << EOF | sudo tee -a $WORK/config_hugepages.sh
+            #!/bin/bash
+
+            export Pages=1024
+
+            HUGEPGSZ=`cat /proc/meminfo  | grep Hugepagesize | cut -d : -f 2 | tr -d ' '`
+
+            #
+            # Creates hugepage filesystem.
+            #
+            create_mnt_huge()
+            {
+                echo "Creating /mnt/huge and mounting as hugetlbfs"
+                sudo mkdir -p /mnt/huge
+                grep -s '/mnt/huge' /proc/mounts > /dev/null
+                if [ $? -ne 0 ] ; then
+                    sudo mount -t hugetlbfs nodev /mnt/huge
+                fi
+            }
+
+            #
+            # Removes hugepage filesystem.
+            #
+            remove_mnt_huge()
+            {
+                    echo "Unmounting /mnt/huge and removing directory"
+                    grep -s '/mnt/huge' /proc/mounts > /dev/null
+                    if [ $? -eq 0 ] ; then
+                            sudo umount /mnt/huge
+                    fi
+
+                    if [ -d /mnt/huge ] ; then
+                            sudo rm -R /mnt/huge
+                    fi
+            }
+
+            #
+            # Removes all reserved hugepages.
+            #
+            clear_huge_pages()
+            {
+                echo > .echo_tmp
+                for d in /sys/devices/system/node/node? ; do
+                  echo "echo 0 > \$d/hugepages/hugepages-\${HUGEPGSZ}/nr_hugepages" >> .echo_tmp
+                done
+                echo "Removing currently reserved hugepages"
+                sudo sh .echo_tmp
+                rm -f .echo_tmp
+                remove_mnt_huge
+            }
+
+            #
+            # Creates hugepages on specific NUMA nodes.
+            #
+            set_numa_pages()
+            {
+                clear_huge_pages
+
+                echo ""
+                echo "  The number of \${HUGEPGSZ} hugepages for each node = \$Pages"
+
+                echo > .echo_tmp
+                for d in /sys/devices/system/node/node? ; do
+                    node=$(basename $d)
+                    echo "echo \$Pages > \$d/hugepages/hugepages-\${HUGEPGSZ}/nr_hugepages" >> .echo_tmp
+                done
+                echo "Reserving hugepages"
+                sudo sh .echo_tmp
+                rm -f .echo_tmp
+
+                create_mnt_huge
+            }
+
+            set_numa_pages
+            EOF
+            chmod +x $WORK/config_hugepages.sh
+            $WORK/config_hugepages.sh > config_hugepages.out 2>&1
+            #------------------------------------------------------
+
+
+            #######################################################
+            # Setup Target and Load required kernel modules
+            #######################################################
+            cat << EOF | sudo tee -a $WORK/setup_target_and_load_kernel_modules.sh
+            #!/bin/bash
+
+            export RTE_SDK="$WORK/dpdk-stable-17.11.1"
+            export RTE_TARGET="x86_64-native-linuxapp-gcc"
+
+            cd \$RTE_SDK; make install T=\${RTE_TARGET}
+
+            #
+            # Unloads igb_uio.ko.
+            #
+            remove_igb_uio_module()
+            {
+                echo "Unloading any existing DPDK UIO module"
+                /sbin/lsmod | grep -s igb_uio > /dev/null
+                if [ $? -eq 0 ] ; then
+                    sudo /sbin/rmmod igb_uio
+                fi
+            }
+
+            #
+            # Loads new igb_uio.ko (and uio module if needed).
+            #
+            load_igb_uio_module()
+            {
+                if [ ! -f \$RTE_SDK/\$RTE_TARGET/kmod/igb_uio.ko ];then
+                    echo "## ERROR: Target does not have the DPDK UIO Kernel Module."
+                    echo "       To fix, please try to rebuild target."
+                    return
+                fi
+
+                remove_igb_uio_module
+
+                /sbin/lsmod | grep -s uio > /dev/null
+                if [ $? -ne 0 ] ; then
+                    modinfo uio > /dev/null
+                    if [ $? -eq 0 ]; then
+                        echo "Loading uio module"
+                        sudo /sbin/modprobe uio
+                    fi
+                fi
+
+                sudo /sbin/modprobe uio
+
+                # UIO may be compiled into kernel, so it may not be an error if it can't
+                # be loaded.
+
+                echo "Loading DPDK UIO module"
+                sudo /sbin/insmod \$RTE_SDK/\$RTE_TARGET/kmod/igb_uio.ko
+                if [ $? -ne 0 ] ; then
+                    echo "## ERROR: Could not load kmod/igb_uio.ko."
+                    quit
+                fi
+            }
+
+            load_igb_uio_module
+            EOF
+            chmod +x $WORK/setup_target_and_load_kernel_modules.sh
+            $WORK/setup_target_and_load_kernel_modules.sh  > setup_target_and_load_kernel_modules.out 2>&1
+            #------------------------------------------------------
+
+
+            #######################################################
+            # Bind NICs to DPDK
+            #######################################################
+            cat << EOF | sudo tee -a $WORK/bind_nics_to_dpdk.sh
+            #!/bin/bash
+
+            export RTE_SDK="$WORK/dpdk-stable-17.11.1"
+            export DRV="virtio-pci"
+
+            declare -a nic_arr=(eth2 eth3 eth4 eth5)
+
+            #
+            # Unbind devices with igb_uio
+            #
+            pci=\`sudo \${RTE_SDK}/usertools/dpdk-devbind.py --status | grep "drv=igb_uio" | awk '{print \$1}'\`
+            set -- \$pci
+
+            for pci_elem in \$@; do
+                echo "unbind \$pci_elem from DPDK to \$DRV"
+                sudo \${RTE_SDK}/usertools/dpdk-devbind.py -b \$DRV \$pci_elem && echo "OK"
+            done
+
+            #
+            # Uses dpdk-devbind.py to move devices to work with igb_uio
+            #
+            bind_devices_to_igb_uio()
+            {
+                if [ -d /sys/module/igb_uio ]; then
+                    sudo \${RTE_SDK}/usertools/dpdk-devbind.py -b igb_uio \$pci && echo "OK"
+                else
+                    echo "# Please load the 'igb_uio' kernel module before querying or "
+                    echo "# adjusting device bindings"
+                fi
+            }
+
+            pci_options=""
+
+            for i in "\${nic_arr[@]}"
+            do
+              pci=\`sudo \$RTE_SDK/usertools/dpdk-devbind.py --status | grep \$i | awk '{print \$1}'\`
+
+              if [[ -n "\$pci" ]]; then
+                sudo ifconfig \$i down
+                bind_devices_to_igb_uio
+                pci_options=" \$pci_options -w \${pci}"
+              fi
+            done
+
+            echo \$pci_options > \$WORK/pci_string.out
+
+            EOF
+            chmod +x $WORK/bind_nics_to_dpdk.sh
+            $WORK/bind_nics_to_dpdk.sh > bind_nics_to_dpdk.out 2>&1
+            #------------------------------------------------------
+
+
+            #######################################################
+            # Launch Testpmd application
+            #######################################################
+            cat << EOF | sudo tee -a $WORK/testpmd_launch.sh
+            #!/bin/bash
+
+            export RTE_SDK="$WORK/dpdk-stable-17.11.1"
+            export RTE_TARGET="x86_64-native-linuxapp-gcc"
+
+            EAL_PARAMS='-n 4'
+            queues=1
+            cores=2
+            stats_period=4
+
+            pci_options=\`cat \$WORK/pci_string.out\`
+
+            echo "Launching app"
+
+            # Bitmask=0x2
+            # sudo \$RTE_SDK/\${RTE_TARGET}/app/testpmd -c \$Bitmask \$EAL_PARAMS -- -i
+
+            sudo \$RTE_SDK/\$RTE_TARGET/build/app/test-pmd/testpmd -l 0-2 \$EAL_PARAMS \$pci_options -- \
+                --disable-hw-vlan \
+                --stats-period \$stats_period \
+                --nb-cores=\${cores} \
+                --disable-rss \
+                --rxq=\${queues} --txq=\${queues} \
+                --auto-start \
+                --rxd=256 --txd=256
+            EOF
+            chmod +x $WORK/testpmd_launch.sh
+            timeout 36 $WORK/testpmd_launch.sh > $WORK/testpmd_launch.out 2>&1 &
+            sleep 9
+            #------------------------------------------------------
+
+          params:
+            #==shaker params
+            "$SERVER_ENDPOINT": { get_param: server_endpoint }
+            "$AGENT_ID": {{ agent.id }}
+            #==shaker params
+
+  #==shaker port
+  {{ agent.id }}_shaker_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: shaker_private_net }
+      fixed_ips:
+        - subnet_id: { get_resource: shaker_private_subnet }
+      security_groups: [{ get_resource: shaker_security_group }]
+  #==shaker port
+
+  {% else %}
+
+  {{ agent.id }}:
+    type: OS::Nova::Server
+    properties:
+      name: {{ agent.id }}
+      image: { get_param: dpdk_image }
+      flavor: { get_param: dpdk_flavor }
+      availability_zone: { get_param: dpdk_az }
+      key_name: { get_param: public_key }
+      networks:
+        #==external port
+        - network: { get_param: external_net }
+        #==external port
+        #==shaker port
+        - port: { get_resource: {{ agent.id }}_shaker_port }
+        #==shaker port
+        - port: { get_resource: port_2_1 }
+        - port: { get_resource: port_2_2 }
+        - port: { get_resource: port_2_3 }
+        - port: { get_resource: port_2_4 }
+
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+
+            export WORK="/root"
+            export proxy="http://one.proxy.att.com:8888"
+
+            sudo dhclient eth1
+            sleep 5
+            sudo dhclient eth2
+            sleep 5
+            sudo dhclient eth3
+            sleep 5
+            sudo dhclient eth4
+            sleep 5
+            sudo dhclient eth5
+            sleep 5
+            #==external port
+            sudo dhclient eth0
+            sleep 5
+            #==external port
+
+            echo "-----BEGIN RSA PRIVATE KEY-----
+            MIIEogIBAAKCAQEA3MHSuV4XuMMJZIEnT6y+tc2dVBVIZhh7IkuTFXrVPhhWvrzU
+            ShysRmx4UkW5OYnGHZVP+Bu2vWJsHKtUnt4dCLTlSIPAoli4F8IZJh/Wb1ow/eVn
+            hNpR//iwD/UMhWVL/NGoymq6Pk37wqiKqf9CX/P1vvFj9MldJsrcCMtVKRy+qGQ3
+            rCNefSyA5AlTcpkBu2vlIc5xgXUGllqZ5sGsHlz5xZ10HTHxhsEySZSikkmQnMh4
+            ZZEravyEUHaf0iXoAlEKqc5h9XVFyd4bpMbXPcSVsqi42VN8wS9F5JWODttEN2zd
+            VLt0CjIfmQwvcpxg5MtI8fcbj9ZimnHnMw4/1QIDAQABAoIBACJOuPn35oXfQbFt
+            5Pcb6JOGfeHYYOUE/vXoetZGvaclzy1bWT6fUCKtrtFSZqPLho+IaeIsJG0wQ479
+            DWyXJjn5KvznBOP2F74ReykSn5e0k5KRuVHLQB0gv/Pq6GQ+xt1mk+3JQmJ2ah7p
+            ZItg0SbqWhGvoBIlzSU/N4ziVLzLoe1Ee1tGDoRwuQLFHyLvxg7oDBpMhqWysMtf
+            AriRweXXwZgkNotqDHP+NwryH1KipkTanXyaoxcat90eIfF0VdSqm1rkcfpcXnNR
+            WN80eeLl1KgEapNvQ1yFiV3hvFI+CqQLu7uLadaOe4QmwOYDeYraWMxhY2TQ1a91
+            8vwAVq0CgYEA73DwFNxWbOXUrG0u9Lj47P7c0HNVqLwBWWpUo2OrUmMyUfumR9RG
+            AzQzuZ+heb9NXyyBK+cMQaLVy0SaMtlxM8OoDtDtRIcVE9hHfmnEEr7+zA/Rkubg
+            8ppKKvg4N8yIhtdic0l0StfMMWEvuAcY3RdPS1IJEklx6xyoTLA6DLcCgYEA7AYa
+            drfv4vmqSVrS+5Doq8fkY4V1+HJfR5MhyPpdsnFNtTA+o8LJTFn5zWPRrELcmc/E
+            8KuolmPxXK3oD8gDKxuvsbyVFbg2s7LOYkzZEPi8GMPQ0w45w8q6OkgBFh13Vtjn
+            zxRsZsDUhdENYMEJ7EFo5Zo+n+3WCgvPOP0NY9MCgYA33MeGdmmLeouFtutvmQAq
+            esOVtnLTrRk7fT1F6Wj9DbuduPJwa6vx72np8r4/o0wv2jhAv+TyI0Vx6Q14s5Zf
+            l1RMMJ5KkKFwQdNcQNzH6tuTTFV+ynLM5wZKxCKJkiSAIRwM/aQuGe6/zobNjopU
+            eq27SuZm58+2JLd3PN4uPQKBgCKnCr+fZdL3QO8gLJXOwrpl0Lxj3dwqPp7tlSpC
+            x/ro87XEbY3xjUhudWSYYTJfZrAWdx22tjvOVKN8zPN0NDLiD7uSqnjT4QQlHnQE
+            QGJjgopIRaKXFhgO7aSc6bvre5f+pJocr4WujgVPmh04elJ7kAEV0lf8vU4gSb5e
+            ONcNAoGAJix/1eiOjBrfS4xfZnoXuWtQVOcrw2p5aH/KKfIw+c+sD72mdxrjmmj0
+            ETM7YSkCaIlze5Vak3ygiHmsWW6DGnEgVvvsVGeOuYqP7k6GKrB+r0W3FUeCcKzL
+            GRvZKpTZERkPyT/x1AtWDVJOG8sPHj7Shhe/3u7uqIej9q++tiM=
+            -----END RSA PRIVATE KEY-----" > ~/.ssh/osh-contrail-key-pair.pem
+
+            echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDcwdK5Xhe4wwlkgSdPrL61zZ1UFUhmGHsiS5MVetU+GFa+vNRKHKxGbHhSRbk5icYdlU/4G7a9Ymwcq1Se3h0ItOVIg8CiWLgXwhkmH9ZvWjD95WeE2lH/+LAP9QyFZUv80ajKaro+TfvCqIqp/0Jf8/W+8WP0yV0mytwIy1UpHL6oZDesI159LIDkCVNymQG7a+UhznGBdQaWWpnmwaweXPnFnXQdMfGGwTJJlKKSSZCcyHhlkStq/IRQdp/SJegCUQqpzmH1dUXJ3hukxtc9xJWyqLjZU3zBL0XklY4O20Q3bN1Uu3QKMh+ZDC9ynGDky0jx9xuP1mKaceczDj/V Generated-by-Nova" >> ~/.ssh/authorized_keys
+            chmod 600 ~/.ssh/authorized_keys
+            chmod 600 ~/.ssh/osh-contrail-key-pair.pem
+            eval $(ssh-agent -s)
+            ssh-add ~/.ssh/osh-contrail-key-pair.pem
+
+            #==shaker cmd
+            #screen -dmS shaker-agent-screen shaker-agent --server-endpoint=$SERVER_ENDPOINT --agent-id=$AGENT_ID --debug --log-file /var/log/shaker-agent.log
+            #==shaker cmd
+
+            export http_proxy=$proxy
+            export https_proxy=$proxy
+
+            cat << EOF | sudo tee -a /etc/yum.conf
+            proxy=$proxy
+            EOF
+
+            yum update -y
+            yum groupinstall -y 'Development Tools'
+            yum install -y numactl-devel pciutils git vim
+            yum install -y kernel-3.10.0-693.17.1.el7.x86_64 kernel-devel-3.10.0-693.17.1.el7.x86_64
+
+            #######################################################
+            # Fetch DPDK code
+            #######################################################
+            curl --proxy $proxy https://fast.dpdk.org/rel/dpdk-17.11.1.tar.xz > $WORK/dpdk-17.11.1.tar.xz
+            cd $WORK/; tar -xvf $WORK/dpdk-17.11.1.tar.xz
+            #------------------------------------------------------
+
+            #######################################################
+            # Setup huge pages
+            #######################################################
+            cat << EOF | sudo tee -a $WORK/config_hugepages.sh
+            #!/bin/bash
+
+            export Pages=1024
+
+            HUGEPGSZ=`cat /proc/meminfo  | grep Hugepagesize | cut -d : -f 2 | tr -d ' '`
+
+            #
+            # Creates hugepage filesystem.
+            #
+            create_mnt_huge()
+            {
+                echo "Creating /mnt/huge and mounting as hugetlbfs"
+                sudo mkdir -p /mnt/huge
+                grep -s '/mnt/huge' /proc/mounts > /dev/null
+                if [ $? -ne 0 ] ; then
+                    sudo mount -t hugetlbfs nodev /mnt/huge
+                fi
+            }
+
+            #
+            # Removes hugepage filesystem.
+            #
+            remove_mnt_huge()
+            {
+                    echo "Unmounting /mnt/huge and removing directory"
+                    grep -s '/mnt/huge' /proc/mounts > /dev/null
+                    if [ $? -eq 0 ] ; then
+                            sudo umount /mnt/huge
+                    fi
+
+                    if [ -d /mnt/huge ] ; then
+                            sudo rm -R /mnt/huge
+                    fi
+            }
+
+            #
+            # Removes all reserved hugepages.
+            #
+            clear_huge_pages()
+            {
+                echo > .echo_tmp
+                for d in /sys/devices/system/node/node? ; do
+                  echo "echo 0 > \$d/hugepages/hugepages-\${HUGEPGSZ}/nr_hugepages" >> .echo_tmp
+                done
+                echo "Removing currently reserved hugepages"
+                sudo sh .echo_tmp
+                rm -f .echo_tmp
+                remove_mnt_huge
+            }
+
+            #
+            # Creates hugepages on specific NUMA nodes.
+            #
+            set_numa_pages()
+            {
+                clear_huge_pages
+
+                echo ""
+                echo "  The number of \${HUGEPGSZ} hugepages for each node = \$Pages"
+
+                echo > .echo_tmp
+                for d in /sys/devices/system/node/node? ; do
+                    node=$(basename $d)
+                    echo "echo \$Pages > \$d/hugepages/hugepages-\${HUGEPGSZ}/nr_hugepages" >> .echo_tmp
+                done
+                echo "Reserving hugepages"
+                sudo sh .echo_tmp
+                rm -f .echo_tmp
+
+                create_mnt_huge
+            }
+
+            set_numa_pages
+            EOF
+            chmod +x $WORK/config_hugepages.sh
+            $WORK/config_hugepages.sh > config_hugepages.out 2>&1
+            #------------------------------------------------------
+
+
+            #######################################################
+            # Setup Target and Load required kernel modules
+            #######################################################
+            cat << EOF | sudo tee -a $WORK/setup_target_and_load_kernel_modules.sh
+            #!/bin/bash
+
+            export RTE_SDK="$WORK/dpdk-stable-17.11.1"
+            export RTE_TARGET="x86_64-native-linuxapp-gcc"
+
+            cd \$RTE_SDK; make install T=\${RTE_TARGET}
+
+            #
+            # Unloads igb_uio.ko.
+            #
+            remove_igb_uio_module()
+            {
+                echo "Unloading any existing DPDK UIO module"
+                /sbin/lsmod | grep -s igb_uio > /dev/null
+                if [ $? -eq 0 ] ; then
+                    sudo /sbin/rmmod igb_uio
+                fi
+            }
+
+            #
+            # Loads new igb_uio.ko (and uio module if needed).
+            #
+            load_igb_uio_module()
+            {
+                if [ ! -f \$RTE_SDK/\$RTE_TARGET/kmod/igb_uio.ko ];then
+                    echo "## ERROR: Target does not have the DPDK UIO Kernel Module."
+                    echo "       To fix, please try to rebuild target."
+                    return
+                fi
+
+                remove_igb_uio_module
+
+                /sbin/lsmod | grep -s uio > /dev/null
+                if [ $? -ne 0 ] ; then
+                    modinfo uio > /dev/null
+                    if [ $? -eq 0 ]; then
+                        echo "Loading uio module"
+                        sudo /sbin/modprobe uio
+                    fi
+                fi
+
+                sudo /sbin/modprobe uio
+
+                # UIO may be compiled into kernel, so it may not be an error if it can't
+                # be loaded.
+
+                echo "Loading DPDK UIO module"
+                sudo /sbin/insmod \$RTE_SDK/\$RTE_TARGET/kmod/igb_uio.ko
+                if [ $? -ne 0 ] ; then
+                    echo "## ERROR: Could not load kmod/igb_uio.ko."
+                    quit
+                fi
+            }
+
+            load_igb_uio_module
+            EOF
+            chmod +x $WORK/setup_target_and_load_kernel_modules.sh
+            $WORK/setup_target_and_load_kernel_modules.sh  > setup_target_and_load_kernel_modules.out 2>&1
+            #------------------------------------------------------
+
+
+            #######################################################
+            # Bind NICs to DPDK
+            #######################################################
+            cat << EOF | sudo tee -a $WORK/bind_nics_to_dpdk.sh
+            #!/bin/bash
+
+            export RTE_SDK="$WORK/dpdk-stable-17.11.1"
+            export DRV="virtio-pci"
+
+            declare -a nic_arr=(eth2 eth3 eth4 eth5)
+
+            #
+            # Unbind devices with igb_uio
+            #
+            pci=\`sudo \${RTE_SDK}/usertools/dpdk-devbind.py --status | grep "drv=igb_uio" | awk '{print \$1}'\`
+            set -- \$pci
+
+            for pci_elem in \$@; do
+                echo "unbind \$pci_elem from DPDK to \$DRV"
+                sudo \${RTE_SDK}/usertools/dpdk-devbind.py -b \$DRV \$pci_elem && echo "OK"
+            done
+
+            #
+            # Uses dpdk-devbind.py to move devices to work with igb_uio
+            #
+            bind_devices_to_igb_uio()
+            {
+                if [ -d /sys/module/igb_uio ]; then
+                    sudo \${RTE_SDK}/usertools/dpdk-devbind.py -b igb_uio \$pci && echo "OK"
+                else
+                    echo "# Please load the 'igb_uio' kernel module before querying or "
+                    echo "# adjusting device bindings"
+                fi
+            }
+
+            pci_options=""
+
+            for i in "\${nic_arr[@]}"
+            do
+              pci=\`sudo \$RTE_SDK/usertools/dpdk-devbind.py --status | grep \$i | awk '{print \$1}'\`
+
+              if [[ -n "\$pci" ]]; then
+                sudo ifconfig \$i down
+                bind_devices_to_igb_uio
+                pci_options=" \$pci_options -w \${pci}"
+              fi
+            done
+
+            echo \$pci_options > \$WORK/pci_string.out
+
+            EOF
+            chmod +x $WORK/bind_nics_to_dpdk.sh
+            $WORK/bind_nics_to_dpdk.sh > bind_nics_to_dpdk.out 2>&1
+            #------------------------------------------------------
+
+
+            #######################################################
+            # Launch Testpmd application
+            #######################################################
+            cat << EOF | sudo tee -a $WORK/testpmd_launch.sh
+            #!/bin/bash
+
+            export RTE_SDK="$WORK/dpdk-stable-17.11.1"
+            export RTE_TARGET="x86_64-native-linuxapp-gcc"
+
+            EAL_PARAMS='-n 4'
+            queues=1
+            cores=2
+            stats_period=4
+
+            pci_options=\`cat \$WORK/pci_string.out\`
+
+            echo "Launching app"
+
+            # Bitmask=0x2
+            # sudo \$RTE_SDK/\${RTE_TARGET}/app/testpmd -c \$Bitmask \$EAL_PARAMS -- -i
+
+            sudo \$RTE_SDK/\$RTE_TARGET/build/app/test-pmd/testpmd -l 0-2 \$EAL_PARAMS \$pci_options -- \
+                --disable-hw-vlan \
+                --stats-period \$stats_period \
+                --nb-cores=\${cores} \
+                --disable-rss \
+                --rxq=\${queues} --txq=\${queues} \
+                --auto-start \
+                --rxd=256 --txd=256
+            EOF
+            chmod +x $WORK/testpmd_launch.sh
+            timeout 36 $WORK/testpmd_launch.sh > $WORK/testpmd_launch.out 2>&1 &
+            sleep 9
+            #------------------------------------------------------
+
+          params:
+            #==shaker params
+            "$SERVER_ENDPOINT": { get_param: server_endpoint }
+            "$AGENT_ID": {{ agent.id }}
+            #==shaker params
+
+  #==shaker port
+  {{ agent.id }}_shaker_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: shaker_private_net }
+      fixed_ips:
+        - subnet_id: { get_resource: shaker_private_subnet }
+      security_groups: [{ get_resource: shaker_security_group }]
+  #==shaker port
+
+  {% endif %}
+{% endfor %}
+
+
+  random_key_1:
+     type: OS::Heat::RandomString
+     properties:
+       length: 16
+
+  random_key_2:
+     type: OS::Heat::RandomString
+     properties:
+       length: 16
+
+  random_key_3:
+     type: OS::Heat::RandomString
+     properties:
+       length: 16
+
+outputs:
+#==shaker output
+{% for agent in agents.values() %}
+  {{ agent.id }}_instance_name:
+    value: { get_attr: [ {{ agent.id }}, instance_name ] }
+  {{ agent.id }}_ip:
+    value: { get_attr: [ {{ agent.id }}, networks, { get_attr: [shaker_private_net, name] }, 0 ] }
+{% endfor %}
+#==shaker output
