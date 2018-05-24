@@ -165,6 +165,7 @@ resources:
             #OPENCONTRAIL_CERT_FILE=<certificates file>
             #OPENCONTRAIL_KEY_FILE=<Key file>
             #OPENCONTRAIL_CA_FILE=<ca file>
+            EOF
                      
             # sed -n "1h;2,\$H;\${g;s/$str_to_rep_old/$str_to_rep_new/;p}" $WORKSPACE/devstack/stackrc > $WORKSPACE/devstack/stackrc_new
             # mv $WORKSPACE/devstack/stackrc_new $WORKSPACE/devstack/stackrc
