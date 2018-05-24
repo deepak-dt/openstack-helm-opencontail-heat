@@ -1,0 +1,135 @@
+# Template to launch a devstack setup with networking-opencontrail ml2 plugin
+
+heat_template_version: 2015-04-30
+
+parameters:
+  image:
+    type: string
+    description: Name of image to use for servers
+  flavor:
+    type: string
+    description: Flavor to use for servers
+  external_net:
+    type: string
+    description: ID or name of external network
+  server_endpoint:
+    type: string
+    description: Server endpoint address
+  dns_nameservers:
+    type: comma_delimited_list
+    description: DNS nameservers for the subnet
+
+ # VN Parameters
+  dt967u_left_net_name:
+    type: string
+    description: Name of left network to be created
+  dt967u_left_net_cidr:
+    type: string
+    description: subnet prefix for left network
+  dt967u_left_net_gw:
+    type: string
+    description: gateway for left network
+
+  az_1:
+    type: string
+    description: Availability Zone for agent
+
+resources:
+  dt967u_left_net:
+    type: OS::Neutron::Net
+    properties:
+      name: dt967u_left_net
+
+  dt967u_left_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: dt967u_left_net }
+      cidr: { get_param: dt967u_left_net_cidr }
+      enable_dhcp: true
+      gateway_ip: { get_param: dt967u_left_net_gw }
+
+  dt967u_router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_param: external_net }
+
+  dt967u_router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: dt967u_router }
+      subnet_id: { get_resource: dt967u_left_subnet }
+
+  dt967u_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules: [
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: tcp,
+        port_range_min: 1,
+        port_range_max: 65535},
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: udp,
+        port_range_min: 1,
+        port_range_max: 65535},
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: icmp},
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: 132,
+        port_range_min: 1,
+        port_range_max: 65535},
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: tcp,
+        port_range_min: 22,
+        port_range_max: 22}]
+
+  port_1:
+    type: "OS::Neutron::Port"
+    properties:
+      network_id: { get_resource: dt967u_left_net }
+      fixed_ips:
+        - subnet_id: { get_resource: dt967u_left_subnet }
+
+  left_vm:
+    type: OS::Nova::Server
+    properties:
+      name: left_vm
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      availability_zone: { get_param: az_1 }
+      networks:
+        - port: { get_resource: dt967u_left_vm_port }
+        - network: { get_param: external_net }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+
+            dhclient ens4
+            sudo ip r add $private_net_cidr_2 dev ens4
+            sudo ip link set ens4 mtu 9000
+
+            #==external port
+            #dhclient ens5
+            #==external port
+
+          params:
+            "$private_net_cidr_2": { get_param: private_net_cidr_2 }
+            "$right_vm_1_ip": { get_attr: [port_2, fixed_ips, 0, ip_address] }
+            "$right_vm_2_ip": { get_attr: [port_3, fixed_ips, 0, ip_address] }
+
+  dt967u_left_vm_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: dt967u_left_net }
+      fixed_ips:
+        - subnet_id: { get_resource: dt967u_left_subnet }
+      security_groups: [{ get_resource: dt967u_security_group }]
+
+
+outputs:
+  left_vm_instance_name:
+    value: { get_attr: [ left_vm, instance_name ] }
+  left_vm_ip:
+    value: { get_attr: [ left_vm, networks, { get_attr: [dt967u_left_net, name] }, 0 ] }
