@@ -20,6 +20,16 @@ parameters:
     description: DNS nameservers for the subnet
 
  # VN Parameters
+  dt967u_mgmt_net_name:
+    type: string
+    description: Name of mgmt network to be created
+  dt967u_mgmt_net_cidr:
+    type: string
+    description: subnet prefix for mgmt network
+  dt967u_mgmt_net_gw:
+    type: string
+    description: gateway for mgmt network
+
   dt967u_left_net_name:
     type: string
     description: Name of left network to be created
@@ -86,9 +96,18 @@ resources:
   port_1:
     type: "OS::Neutron::Port"
     properties:
+      network_id: { get_resource: dt967u_mgmt_net }
+      fixed_ips:
+        - subnet_id: { get_resource: dt967u_mgmt_subnet }
+      security_groups: [{ get_resource: dt967u_security_group }]
+
+  port_2:
+    type: "OS::Neutron::Port"
+    properties:
       network_id: { get_resource: dt967u_left_net }
       fixed_ips:
         - subnet_id: { get_resource: dt967u_left_subnet }
+      security_groups: [{ get_resource: dt967u_security_group }]
 
   left_vm:
     type: OS::Nova::Server
@@ -98,8 +117,8 @@ resources:
       flavor: { get_param: flavor }
       availability_zone: { get_param: az_1 }
       networks:
-        - port: { get_resource: dt967u_left_vm_port }
-        - network: { get_param: external_net }
+        - port: { get_resource: port_1 }
+        - port: { get_resource: port_2 }
       user_data_format: RAW
       user_data:
         str_replace:
@@ -119,17 +138,10 @@ resources:
             "$right_vm_1_ip": { get_attr: [port_2, fixed_ips, 0, ip_address] }
             "$right_vm_2_ip": { get_attr: [port_3, fixed_ips, 0, ip_address] }
 
-  dt967u_left_vm_port:
-    type: OS::Neutron::Port
-    properties:
-      network_id: { get_resource: dt967u_left_net }
-      fixed_ips:
-        - subnet_id: { get_resource: dt967u_left_subnet }
-      security_groups: [{ get_resource: dt967u_security_group }]
-
-
 outputs:
   left_vm_instance_name:
     value: { get_attr: [ left_vm, instance_name ] }
-  left_vm_ip:
+  left_vm_mgmt_ip:
+    value: { get_attr: [ left_vm, networks, { get_attr: [dt967u_mgmt_net, name] }, 0 ] }
+  left_vm_left_ip:
     value: { get_attr: [ left_vm, networks, { get_attr: [dt967u_left_net, name] }, 0 ] }
